@@ -1,0 +1,67 @@
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decrypt</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            outline: none; 
+        }
+        #message {
+            margin-top: 20px;
+            font-weight: bold;
+            font-family: Inter;
+             letter-spacing: 0.55px;
+             font-size: 16px;
+             line-height: 28px;
+          text-align:left;
+        }
+    </style>
+</head>
+<body>
+    <input type="password" id="password" placeholder="Enter password">
+  <blockquote>
+    <p id="message"></p>
+</blockquote>
+    <script>
+        
+var encryptedText = "U2FsdGVkX18w38bi+YyYHTG7ZaaQAlgyl5hrSn26NKtw2BjZVkULxSVMgjZyQdTlDmXFudE1s7JkIeCrh+80eb+l3RKDmsy48YVDafLxxf7gJB41wYPqqx6Llm+YAgCsGXiFun8chLM4Qrsf5pQxyzfaQDtsAW398lD96OJIt3QzyqOy9WbCrk9OIXvGwkqodmbj4hcvu1ebRUhFgNxUCTDwtrxVXZvwxLlccfULRyHBM+/egoAWGjuA1Kz2pdUXh8BowT0yYSxmte+4zQQvCA==";
+        document.getElementById("password").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                decryptMessage();
+            }
+        });
+
+        function decryptMessage() {
+            var passwordInput = document.getElementById("password");
+            var password = passwordInput.value;
+            try {
+                var decryptedBytes = CryptoJS.AES.decrypt(encryptedText, CryptoJS.SHA256(password).toString());
+                var decryptedMessage = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                if (!decryptedMessage) throw new Error("Wrong password or corrupted data"); 
+                document.getElementById("message").innerText = decryptedMessage;
+                passwordInput.style.display = "none";
+            } catch (error) {
+                document.getElementById("message").innerText = "Decryption failed! Check your password.";
+            }
+        }
+    </script>
+</body>
+</html>
