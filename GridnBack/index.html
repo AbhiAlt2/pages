@@ -132,7 +132,7 @@ function toggleGame() {
     score = { correct: 0, misses: 0, false: 0 };
     document.getElementById("info").textContent = "Game started. Press SPACE when a pattern matches the one " + n + " back.";
     if (gameInterval) clearInterval(gameInterval);
-    const matchProbability = 0.2 + Math.random() * 0.3; // range: 0.2–0.5
+    const matchProbability = 0.2 + Math.random() * 0.4; // range: 0.2–0.6
     let t = baseTrials+4*n
     document.getElementById("trials").textContent = t
     function gameloop(){
