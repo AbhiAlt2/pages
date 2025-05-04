@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Grid N Back</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin: 20px; }
+    #grid { display: grid; gap: 2px; justify-content: center; margin-top: 20px; }
+    .cell { width: 40px; height: 40px; background: #efefff; }
+    .white { background: #333 !important; }
+    button { margin: 5px; }
+    
+    h1 {
+    font-size: clamp(2rem, 5vw + 1rem, 3rem);
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3.5vw + 0.8rem, 2.5rem);
+  }
+
+  p, button, input, label, span {
+    font-size: clamp(1.1rem, 2vw + 0.4rem, 1.5rem);
+  }
+
+/* Medium devices (tablets, 768px and below) */
+@media (max-width: 768px) {
+ 
+
+  h1 {
+    font-size: clamp(2rem, 5vw + 1rem, 3rem);
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3.5vw + 0.8rem, 2.5rem);
+  }
+
+  p, button, input, label, span {
+    font-size: clamp(1.1rem, 2vw + 0.4rem, 1.5rem);
+  }
+}
+
+/* Small devices (phones, 480px and below) */
+@media (max-width: 480px) {
+  
+
+  h1 {
+    font-size: clamp(2rem, 5vw + 1rem, 3rem);
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3.5vw + 0.8rem, 2.5rem);
+  }
+
+  p, button, input, label, span {
+    font-size: clamp(1.1rem, 2vw + 0.4rem, 1.5rem);
+  }
+}
+  </style>
+</head>
+<body>
+
+<h2>Grid N Back</h2>
+<h2>Train Visual Memory</h2>
+
+<label>Grid Size (s): <input id="gridSize" type="number" min="2" max="20" value="3"></label><br>
+<label>Delay (seconds): <input id="delay" type="number" min="1" max="10" value="2"></label><br>
+
+<label>Trials : <span id="step"></span> / 20 </label><br>
+<p>N-Back Level: <span id="nValue">1</span>
+  <button onclick="changeN(1)">+</button>
+  <button onclick="changeN(-1)">-</button>
+</p>
+<label>Press Enter to start</label><br>
+<button onclick="toggleGame()" id="startstop" style="width:100px;height:50px;">Start</button>
+
+<div style="display:flex;justify-content: center;">
+  <div id="grid"></div>
+</div>
+<p id="info"></p>
+
+<script>
+  let n = 1, s, d, gridHistory = [], guessHistory = [];
+  let currentStep = 0, score = { correct: 0, misses: 0, false: 0 };
+  let gameInterval, patternSequence = [];showingPattern = false;
+
+  function changeN(delta) {
+    n = Math.max(1, n + delta);
+    document.getElementById("nValue").textContent = n;
+  }
+
+  function createGrid(size) {
+    const grid = document.getElementById("grid");
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    for (let i = 0; i < size * size; i++) {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
+      grid.appendChild(cell);
+    }
+  }
+
+  function randomPattern(size) {
+    const indices = Array.from({length: size * size}, (_, i) => i);
+    let shuffled = indices.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.floor((size*size)/2 - 1));
+  }
+
+  function renderPattern(pattern) {
+    const cells = document.querySelectorAll(".cell");
+    cells.forEach(c => c.classList.remove("white"));
+    pattern.forEach(i => cells[i].classList.add("white"));
+  }
+  let gameRunning = false;
+
+function toggleGame() {
+  if (gameRunning) {
+    endGame();
+  } else {
+    startGame();
+  }
+}
+  function startGame() {
+    document.getElementById("startstop").textContent = "Stop"
+    document.getElementById("result").textContent = ""
+    gameRunning = true
+    s = parseInt(document.getElementById("gridSize").value);
+    d = parseFloat(document.getElementById("delay").value);
+    createGrid(s);
+    gridHistory = [];
+    guessHistory = [];
+    currentStep = 0;
+    score = { correct: 0, misses: 0, false: 0 };
+    document.getElementById("info").textContent = "Game started. Press SPACE when a pattern matches the one " + n + " back.";
+    if (gameInterval) clearInterval(gameInterval);
+    const matchProbability = 0.4 + Math.random() * 0.3; // range: 0.4–0.7
+
+    function gameloop(){
+      // Show empty grid
+      renderPattern([]); // Empty grid
+      setTimeout(() => {
+        let pattern;
+        if (gridHistory.length >= n && Math.random() < matchProbability) {
+          // repeat pattern from n steps ago
+          pattern = gridHistory[gridHistory.length - n];
+        } else {
+          pattern = randomPattern(s);
+        }
+        // const pattern = randomPattern(s);
+        renderPattern(pattern);
+        gridHistory.push(pattern);
+        if (gridHistory.length > n) {
+          const userGuessed = guessHistory[currentStep - n] || false;
+          const isMatch = JSON.stringify(gridHistory[currentStep]) === JSON.stringify(gridHistory[currentStep - n]);
+          if (isMatch && userGuessed) score.correct++;
+          else if (isMatch && !userGuessed) score.misses++;
+          else if (!isMatch && userGuessed) score.false++;
+        }
+        guessHistory.push(false);
+        currentStep++;
+        document.getElementById("step").textContent = currentStep
+        if (currentStep > 20) endGame();
+      }, 500);
+      // sleep(0.5);
+    }
+    gameloop()
+    gameInterval = setInterval(() => {
+      gameloop()
+    }, d * 1000);
+  }
+  
+
+  function endGame() {
+    document.getElementById("startstop").textContent = "Start"
+    gameRunning = false
+    clearInterval(gameInterval);
+    const total = score.correct + score.misses + score.false;
+    const acc = total === 0 ? 0 : (score.correct / total) * 100;
+    let msg = `Game Over! Accuracy: ${acc.toFixed(1)}%. Correct: ${score.correct}, Misses: ${score.misses}, False: ${score.false}`;
+    if (acc >= 80) {
+      n++;
+      msg += `\nWell done! N increased to ${n}`;
+      document.getElementById("result").style.color = "#90A362"
+    } else {
+      msg += `\nTry again to reach 80% accuracy. N remains at ${n}`;
+      document.getElementById("result").style.color = "#B54A4A"
+    }
+    document.getElementById("nValue").textContent = n;
+    document.getElementById("result").textContent = msg
+  }
+
+  function registerGuess() {
+    if (guessHistory.length > 0) {
+      guessHistory[guessHistory.length - 1] = true;
+    }
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") registerGuess();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter")  toggleGame();
+  });
+
+  function sleep(n){
+    const start = Date.now();
+    while (Date.now() - start < n*1000) {
+      // Busy wait (bad practice)
+    }
+  }
+
+  document.querySelectorAll("button").forEach(btn => {
+  btn.addEventListener("mouseup", () => {
+    btn.blur(); // removes focus
+  });
+});
+</script>
+
+<label id="result"></label><br>
+<button onclick="registerGuess()" style="margin-top: 20px;width:30%;height:50px;">Match!</button>
+
+</body>
+</html>
