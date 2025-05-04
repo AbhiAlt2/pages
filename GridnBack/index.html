@@ -181,7 +181,7 @@ function toggleGame() {
     clearInterval(gameInterval);
     const total = score.correct + score.misses + score.false;
     const acc = total === 0 ? 0 : (score.correct / total) * 100;
-    let msg = `Game Over! For n : ${n}: Accuracy: ${acc.toFixed(1)}%. Correct: ${score.correct}, Misses: ${score.misses}, False: ${score.false}`;
+    let msg = `Game Over! For N = ${n}: Accuracy: ${acc.toFixed(1)}%. Correct: ${score.correct}, Misses: ${score.misses}, False: ${score.false}`;
     if (acc >= 80) {
       n++;
       msg += `\nWell done! N increased to ${n}`;
