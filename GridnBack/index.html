@@ -79,10 +79,11 @@
 <p id="info"></p>
 
 <script>
+  window.onload = renderProgress;
   let n = 1, s, d, gridHistory = [], guessHistory = [];baseTrials = 20
   let currentStep = 0, score = { correct: 0, misses: 0, false: 0 };
   let gameInterval, patternSequence = [];showingPattern = false;
-
+  let t = baseTrials+4*n
   function changeN(delta) {
     n = Math.max(1, n + delta);
     document.getElementById("nValue").textContent = n;
@@ -132,8 +133,8 @@ function toggleGame() {
     score = { correct: 0, misses: 0, false: 0 };
     document.getElementById("info").textContent = "Game started. Press SPACE when a pattern matches the one " + n + " back.";
     if (gameInterval) clearInterval(gameInterval);
-    const matchProbability = 0.2 + Math.random() * 0.4; // range: 0.2–0.6
-    let t = baseTrials+4*n
+    const matchProbability = 0.2 + Math.random() * 0.3; // range: 0.2–0.5
+    
     document.getElementById("trials").textContent = t
     function gameloop(){
       // Show empty grid
@@ -180,17 +181,21 @@ function toggleGame() {
     clearInterval(gameInterval);
     const total = score.correct + score.misses + score.false;
     const acc = total === 0 ? 0 : (score.correct / total) * 100;
-    let msg = `Game Over! Accuracy: ${acc.toFixed(1)}%. Correct: ${score.correct}, Misses: ${score.misses}, False: ${score.false}`;
+    let msg = `Game Over! For n : ${n}: Accuracy: ${acc.toFixed(1)}%. Correct: ${score.correct}, Misses: ${score.misses}, False: ${score.false}`;
     if (acc >= 80) {
       n++;
       msg += `\nWell done! N increased to ${n}`;
       document.getElementById("result").style.color = "#90A362"
+      if(currentStep>t+1) saveProgress(msg, true)
     } else {
       msg += `\nTry again to reach 80% accuracy. N remains at ${n}`;
       document.getElementById("result").style.color = "#B54A4A"
+      
+      if(currentStep>t+1) saveProgress(msg, false)
     }
     document.getElementById("nValue").textContent = n;
     document.getElementById("result").textContent = msg
+    renderProgress()
   }
 
   function registerGuess() {
@@ -222,10 +227,37 @@ function toggleGame() {
     btn.blur(); // removes focus
   });
 });
+
+function saveProgress(resultText, isSuccess) {
+  const progress = JSON.parse(localStorage.getItem("progressLog")) || [];
+
+  const entry = {
+    text: resultText,
+    date: new Date().toLocaleString(), 
+    color:isSuccess?"#90A362":"#B54A4A"
+  };
+
+  progress.push(entry);
+  localStorage.setItem("progressLog", JSON.stringify(progress));
+  renderProgress(); // Update list
+}
+
+function renderProgress() {
+  const progress = JSON.parse(localStorage.getItem("progressLog")) || [];
+  const list = document.getElementById("progressList");
+  list.innerHTML = "";
+
+  progress.forEach(entry => {
+    const li = document.createElement("li");
+    li.textContent = `${entry.date}: ${entry.text}`;
+    li.style.color = entry.color
+    list.appendChild(li);
+  });
+}
 </script>
 
 <label id="result"></label><br>
 <button onclick="registerGuess()" style="margin-top: 20px;width:50%;height:70px;" id="match">Match!</button>
-
+<ul id="progressList" style="text-align: left;list-style-type: decimal;"></ul>
 </body>
 </html>
