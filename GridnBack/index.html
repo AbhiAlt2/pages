@@ -64,7 +64,7 @@
 <label>Grid Size (s): <input id="gridSize" type="number" min="2" max="20" value="3"></label><br>
 <label>Delay (seconds): <input id="delay" type="number" min="1" max="10" value="2"></label><br>
 
-<label>Trials : <span id="step"></span> / 20 </label><br>
+<label>Trials : <span id="step"></span> / <span id="trials">20</span> </label><br>
 <p>N-Back Level: <span id="nValue">1</span>
   <button onclick="changeN(1)">+</button>
   <button onclick="changeN(-1)">-</button>
@@ -72,13 +72,13 @@
 <label>Press Enter to start</label><br>
 <button onclick="toggleGame()" id="startstop" style="width:100px;height:50px;">Start</button>
 
-<div style="display:flex;justify-content: center;margin-block: 50px;">
+<div style="display:flex;justify-content: center;">
   <div id="grid"></div>
 </div>
 <p id="info"></p>
 
 <script>
-  let n = 1, s, d, gridHistory = [], guessHistory = [];
+  let n = 1, s, d, gridHistory = [], guessHistory = [];baseTrials = 20
   let currentStep = 0, score = { correct: 0, misses: 0, false: 0 };
   let gameInterval, patternSequence = [];showingPattern = false;
 
@@ -127,37 +127,42 @@ function toggleGame() {
     createGrid(s);
     gridHistory = [];
     guessHistory = [];
-    currentStep = 0;
+    currentStep = 1;
     score = { correct: 0, misses: 0, false: 0 };
     document.getElementById("info").textContent = "Game started. Press SPACE when a pattern matches the one " + n + " back.";
     if (gameInterval) clearInterval(gameInterval);
-    const matchProbability = 0.4 + Math.random() * 0.3; // range: 0.4–0.7
-
+    const matchProbability = 0.2 + Math.random() * 0.3; // range: 0.2–0.5
+    let t = baseTrials+4*n
+    document.getElementById("trials").textContent = t
     function gameloop(){
       // Show empty grid
       renderPattern([]); // Empty grid
       setTimeout(() => {
         let pattern;
-        if (gridHistory.length >= n && Math.random() < matchProbability) {
-          // repeat pattern from n steps ago
-          pattern = gridHistory[gridHistory.length - n];
-        } else {
-          pattern = randomPattern(s);
+        if(currentStep <= t) {
+          if (gridHistory.length >= n && Math.random() < matchProbability) {
+            // repeat pattern from n steps ago
+            pattern = gridHistory[gridHistory.length - n];
+          } else {
+            pattern = randomPattern(s);
+          }
+          // const pattern = randomPattern(s);
+          renderPattern(pattern);
+          gridHistory.push(pattern);
+          document.getElementById("step").textContent = currentStep
         }
-        // const pattern = randomPattern(s);
-        renderPattern(pattern);
-        gridHistory.push(pattern);
-        if (gridHistory.length > n) {
-          const userGuessed = guessHistory[currentStep - n] || false;
-          const isMatch = JSON.stringify(gridHistory[currentStep]) === JSON.stringify(gridHistory[currentStep - n]);
+        
+        if (gridHistory.length > n+1) {
+          //console.log(155,guessHistory[currentStep-2], gridHistory[currentStep-2], gridHistory[currentStep-2 - n])
+          const userGuessed = guessHistory[currentStep-2] || false;
+          const isMatch = JSON.stringify(gridHistory[currentStep-2]) === JSON.stringify(gridHistory[currentStep-2 - n]);
           if (isMatch && userGuessed) score.correct++;
           else if (isMatch && !userGuessed) score.misses++;
           else if (!isMatch && userGuessed) score.false++;
         }
         guessHistory.push(false);
         currentStep++;
-        document.getElementById("step").textContent = currentStep
-        if (currentStep > 20) endGame();
+        if (currentStep > t+1) endGame();
       }, 500);
       // sleep(0.5);
     }
@@ -191,6 +196,10 @@ function toggleGame() {
     if (guessHistory.length > 0) {
       guessHistory[guessHistory.length - 1] = true;
     }
+    document.getElementById("match").style.backgroundColor = "#4A6DE1"
+    setTimeout(() => {
+      document.getElementById("match").style.backgroundColor = ""
+    }, 500);
   }
 
   document.addEventListener("keydown", (e) => {
@@ -215,7 +224,7 @@ function toggleGame() {
 </script>
 
 <label id="result"></label><br>
-<button onclick="registerGuess()" style="margin-top: 20px;width:30%;height:50px;">Match!</button>
+<button onclick="registerGuess()" style="margin-top: 20px;width:30%;height:50px;" id="match">Match!</button>
 
 </body>
 </html>
