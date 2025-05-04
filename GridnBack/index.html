@@ -254,6 +254,28 @@ function renderProgress() {
     list.appendChild(li);
   });
 }
+
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    console.log("Wake Lock is active");
+
+    // Re-request if it gets released
+    wakeLock.addEventListener('release', () => {
+      console.log("Wake Lock released");
+    });
+  } catch (err) {
+    console.error(`${err.name}, ${err.message}`);
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && wakeLock !== null) {
+    requestWakeLock();
+  }
+});
 </script>
 
 <label id="result"></label><br>
