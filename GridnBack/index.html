@@ -62,8 +62,11 @@
 <h2>Grid N Back</h2>
 <h2>Train Visual Memory</h2>
 
-<label>Grid Size (s): <input id="gridSize" type="number" min="2" max="20" value="3"></label><br>
+<label>Grid Size (l): <input id="gridSize" type="number" min="2" max="20" value="3"></label><br>
 <label>Delay (seconds): <input id="delay" type="number" min="1" max="10" value="2"></label><br>
+<label>Interference (applies for N>1) (%): <input id="inf" type="number" min="1" max="100" value="20"></label><br>
+
+<label>Enable match feedback (ON/OFF): <input id="matchConfig" type="checkbox" ></label><br>
 
 <p>N-Back Level: <span id="nValue">1</span>
   <button onclick="changeN(1)">+</button>
@@ -81,9 +84,9 @@
 <script>
   window.onload = renderProgress;
   let n = 1, s, d, gridHistory = [], guessHistory = [];baseTrials = 20
-  let currentStep = 0, score = { correct: 0, misses: 0, false: 0 };
+  let currentStep = 0, score = { correct: 0, misses: 0, false: 0 }; let t = 0;let inf = 0;
   let gameInterval, patternSequence = [];showingPattern = false;
-  let t = baseTrials+4*n
+  
   function changeN(delta) {
     n = Math.max(1, n + delta);
     document.getElementById("nValue").textContent = n;
@@ -130,6 +133,8 @@ function toggleGame() {
     gridHistory = [];
     guessHistory = [];
     currentStep = 1;
+    inf = parseInt(document.getElementById("inf").value)/100;
+    t = baseTrials+4*n;
     score = { correct: 0, misses: 0, false: 0 };
     document.getElementById("info").textContent = "Game started. Press SPACE when a pattern matches the one " + n + " back.";
     if (gameInterval) clearInterval(gameInterval);
@@ -146,7 +151,17 @@ function toggleGame() {
             // repeat pattern from n steps ago
             pattern = gridHistory[gridHistory.length - n];
           } else {
-            pattern = randomPattern(s);
+            if(gridHistory.length > n && n>1 && Math.random() <= inf) {
+              if(Math.random() < 0.5) {
+                pattern = gridHistory[gridHistory.length - n+1];
+              }
+              else {
+                pattern = gridHistory[gridHistory.length - n-1];
+              }
+            }
+            else {
+              pattern = randomPattern(s);
+            }
           }
           // const pattern = randomPattern(s);
           renderPattern(pattern);
@@ -154,14 +169,7 @@ function toggleGame() {
           document.getElementById("step").textContent = currentStep
         }
         
-        if (gridHistory.length > n+1) {
-          //console.log(155,guessHistory[currentStep-2], gridHistory[currentStep-2], gridHistory[currentStep-2 - n])
-          const userGuessed = guessHistory[currentStep-2] || false;
-          const isMatch = JSON.stringify(gridHistory[currentStep-2]) === JSON.stringify(gridHistory[currentStep-2 - n]);
-          if (isMatch && userGuessed) score.correct++;
-          else if (isMatch && !userGuessed) score.misses++;
-          else if (!isMatch && userGuessed) score.false++;
-        }
+        
         guessHistory.push(false);
         currentStep++;
         if (currentStep > t+1) endGame();
@@ -181,7 +189,7 @@ function toggleGame() {
     clearInterval(gameInterval);
     const total = score.correct + score.misses + score.false;
     const acc = total === 0 ? 0 : (score.correct / total) * 100;
-    let msg = `Game Over! For N = ${n}: Accuracy: ${acc.toFixed(1)}%. Correct: ${score.correct}, Misses: ${score.misses}, False: ${score.false}`;
+    let msg = `Game Over! For n : ${n}: Accuracy: ${acc.toFixed(1)}%. Correct: ${score.correct}, Misses: ${score.misses}, False: ${score.false}`;
     if (acc >= 80) {
       n++;
       msg += `\nWell done! N increased to ${n}`;
@@ -195,6 +203,7 @@ function toggleGame() {
     }
     document.getElementById("nValue").textContent = n;
     document.getElementById("result").textContent = msg
+    document.getElementById("info").textContent = ""
     renderProgress()
   }
 
@@ -202,7 +211,26 @@ function toggleGame() {
     if (guessHistory.length > 0) {
       guessHistory[guessHistory.length - 1] = true;
     }
-    document.getElementById("match").style.backgroundColor = "#4A6DE1"
+    if (gridHistory.length > n+1) {
+      //console.log(155,guessHistory[currentStep-2], gridHistory[currentStep-2], gridHistory[currentStep-2 - n])
+      const userGuessed = guessHistory[currentStep-2] || false;
+      const isMatch = JSON.stringify(gridHistory[currentStep-2]) === JSON.stringify(gridHistory[currentStep-2 - n]);
+      if (isMatch && userGuessed) score.correct++;
+      else if (isMatch && !userGuessed) score.misses++;
+      else if (!isMatch && userGuessed) score.false++;
+
+      if(document.getElementById("matchConfig").checked) {
+        if(userGuessed && isMatch) {
+          document.getElementById("match").style.backgroundColor = "#90A362"
+        }
+        else if(userGuessed && !isMatch || isMatch) {
+          document.getElementById("match").style.backgroundColor = "#B54A4A"
+        }
+      }else {
+        document.getElementById("match").style.backgroundColor = "#4A6DE1"
+      }
+
+    }
     setTimeout(() => {
       document.getElementById("match").style.backgroundColor = ""
     }, 500);
@@ -223,10 +251,19 @@ function toggleGame() {
   }
 
   document.querySelectorAll("button").forEach(btn => {
-  btn.addEventListener("mouseup", () => {
-    btn.blur(); // removes focus
+    btn.addEventListener("mouseup", () => {
+      btn.blur(); // removes focus
+    });
+  })
+
+  document.querySelectorAll("#matchConfig").forEach(btn => {
+    btn.addEventListener("mouseup", () => {
+      btn.blur(); // removes focus
+    });
+    btn.addEventListener("keyup", () => {
+      btn.blur(); // removes focus
+    });
   });
-});
 
 function saveProgress(resultText, isSuccess) {
   const progress = JSON.parse(localStorage.getItem("progressLog")) || [];
@@ -279,7 +316,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 
 <label id="result"></label><br>
-<button onclick="registerGuess()" style="margin-top: 20px;width:50%;height:70px;" id="match">Match!</button>
+<button onclick="registerGuess()" style="margin-top: 20px;width:50%;height:70px;" id="match">Press on match</button>
 <ul id="progressList" style="text-align: left;list-style-type: decimal;"></ul>
 </body>
 </html>
