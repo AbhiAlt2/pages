@@ -181,6 +181,7 @@
 
     if (e.key === ' ' && active.id === 'userInput') {
       e.preventDefault();
+      document.getelementbyid("userInput").blur()
       checkAnswer();
     }
   });
