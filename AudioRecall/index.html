@@ -74,102 +74,116 @@
   <div id="feedback"></div>
 
   <script>
-    let currentSequence = '';
-    let voices = [];
+   let currentSequence = '';
+  let voices = [];
 
-    function populateVoices() {
-      voices = speechSynthesis.getVoices();
-      const voiceSelect = document.getElementById('voiceSelect');
-      voiceSelect.innerHTML = '';
-      voices.forEach((voice, index) => {
-        const option = document.createElement('option');
-        option.value = index;
-        option.textContent = `${voice.name} (${voice.lang})${voice.default ? ' [Default]' : ''}`;
-        voiceSelect.appendChild(option);
-      });
+  function populateVoices() {
+    voices = speechSynthesis.getVoices();
+    const voiceSelect = document.getElementById('voiceSelect');
+    voiceSelect.innerHTML = '';
+    voices.forEach((voice, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.textContent = `${voice.name} (${voice.lang})${voice.default ? ' [Default]' : ''}`;
+      voiceSelect.appendChild(option);
+    });
+  }
+
+  speechSynthesis.onvoiceschanged = populateVoices;
+  populateVoices();
+
+  function generateSequence(length, type) {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    let charset = '';
+
+    if (type === 'letters') charset = letters;
+    else if (type === 'numbers') charset = numbers;
+    else charset = letters + numbers;
+
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      const randIndex = Math.floor(Math.random() * charset.length);
+      result += charset[randIndex];
+    }
+    return result;
+  }
+
+  function speakSequence(sequence, voice, delayBetween = 800) {
+    let i = 0;
+
+    function speakNext() {
+      if (i >= sequence.length) return;
+      const utterance = new SpeechSynthesisUtterance(sequence[i]);
+      utterance.voice = voice;
+      utterance.rate = 0.8;
+      speechSynthesis.speak(utterance);
+      i++;
+      setTimeout(speakNext, delayBetween);
     }
 
-    // Load voices asynchronously
-    speechSynthesis.onvoiceschanged = populateVoices;
-    populateVoices();
+    speakNext();
+  }
 
-    function generateSequence(length, type) {
-      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      const numbers = '0123456789';
-      let charset = '';
+  function startGame() {
+    const length = parseInt(document.getElementById('length').value);
+    const type = document.getElementById('type').value;
+    const duration = parseInt(document.getElementById('duration').value) * 1000;
+    const presentation = document.getElementById('presentation').value;
+    const voiceIndex = parseInt(document.getElementById('voiceSelect').value);
+    const selectedVoice = voices[voiceIndex] || speechSynthesis.getVoices()[0];
 
-      if (type === 'letters') charset = letters;
-      else if (type === 'numbers') charset = numbers;
-      else charset = letters + numbers;
+    currentSequence = generateSequence(length, type);
+    document.getElementById('feedback').innerText = '';
+    document.getElementById('inputSection').style.display = 'none';
+    document.getElementById('userInput').value = '';
 
-      let result = '';
-      for (let i = 0; i < length; i++) {
-        const randIndex = Math.floor(Math.random() * charset.length);
-        result += charset[randIndex];
-      }
-      return result;
+    if (presentation === 'visual') {
+      document.getElementById('sequence').innerText = currentSequence;
+      setTimeout(() => {
+        document.getElementById('sequence').innerText = '';
+        document.getElementById('inputSection').style.display = 'block';
+        document.getElementById('userInput').focus();
+      }, duration);
+    } else if (presentation === 'audio') {
+      document.getElementById('sequence').innerText = '(Playing audio...)';
+      speakSequence(currentSequence, selectedVoice);
+      setTimeout(() => {
+        document.getElementById('sequence').innerText = '';
+        document.getElementById('inputSection').style.display = 'block';
+        document.getElementById('userInput').focus();
+      }, currentSequence.length * 800 + 500);
+    }
+  }
+
+  function checkAnswer() {
+    const userInput = document.getElementById('userInput').value.trim().toUpperCase();
+    const correct = currentSequence.toUpperCase();
+    const feedback = document.getElementById('feedback');
+
+    if (userInput === correct) {
+      feedback.innerText = '✅ Correct!';
+      feedback.style.color = 'green';
+    } else {
+      feedback.innerText = `❌ Incorrect. Correct was: ${correct}`;
+      feedback.style.color = 'red';
+    }
+  }
+
+  // 🎯 Add keyboard shortcuts
+  document.addEventListener('keydown', function (e) {
+    const active = document.activeElement;
+
+    if (e.key === 'Enter' && active.id !== 'userInput') {
+      e.preventDefault();
+      startGame();
     }
 
-    function speakSequence(sequence, voice, delayBetween = 800) {
-      let i = 0;
-
-      function speakNext() {
-        if (i >= sequence.length) return;
-        const utterance = new SpeechSynthesisUtterance(sequence[i]);
-        utterance.voice = voice;
-        utterance.rate = 0.8; // slower pace for clarity
-        speechSynthesis.speak(utterance);
-        i++;
-        setTimeout(speakNext, delayBetween);
-      }
-
-      speakNext();
+    if (e.key === ' ' && active.id === 'userInput') {
+      e.preventDefault();
+      checkAnswer();
     }
-
-    function startGame() {
-      const length = parseInt(document.getElementById('length').value);
-      const type = document.getElementById('type').value;
-      const duration = parseInt(document.getElementById('duration').value) * 1000;
-      const presentation = document.getElementById('presentation').value;
-      const voiceIndex = parseInt(document.getElementById('voiceSelect').value);
-      const selectedVoice = voices[voiceIndex] || speechSynthesis.getVoices()[0];
-
-      currentSequence = generateSequence(length, type);
-      document.getElementById('feedback').innerText = '';
-      document.getElementById('inputSection').style.display = 'none';
-      document.getElementById('userInput').value = '';
-
-      if (presentation === 'visual') {
-        document.getElementById('sequence').innerText = currentSequence;
-        setTimeout(() => {
-          document.getElementById('sequence').innerText = '';
-          document.getElementById('inputSection').style.display = 'block';
-          document.getElementById('userInput').focus();
-        }, duration);
-      } else if (presentation === 'audio') {
-        document.getElementById('sequence').innerText = '(Playing audio...)';
-        speakSequence(currentSequence, selectedVoice);
-        setTimeout(() => {
-          document.getElementById('sequence').innerText = '';
-          document.getElementById('inputSection').style.display = 'block';
-          document.getElementById('userInput').focus();
-        }, length * 800 + 500);
-      }
-    }
-
-    function checkAnswer() {
-      const userInput = document.getElementById('userInput').value.trim().toUpperCase();
-      const correct = currentSequence.toUpperCase();
-      const feedback = document.getElementById('feedback');
-
-      if (userInput === correct) {
-        feedback.innerText = '✅ Correct!';
-        feedback.style.color = 'green';
-      } else {
-        feedback.innerText = `❌ Incorrect. Correct was: ${correct}`;
-        feedback.style.color = 'red';
-      }
-    }
+  });
   </script>
 
 </body>
